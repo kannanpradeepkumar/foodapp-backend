@@ -1,0 +1,14 @@
+# Java / Maven
+/target/
+*.class
+*.log
+
+# IntelliJ / VSCode
+.idea/
+.vscode/
+
+# Firebase private key
+src/main/resources/firebase-service-account.json
+
+# OS stuff
+.DS_Store
