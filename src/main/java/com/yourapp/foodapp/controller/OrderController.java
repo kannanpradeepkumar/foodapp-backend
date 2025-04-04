@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
+import jakarta.validation.Valid;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -20,18 +22,41 @@ import java.util.concurrent.CountDownLatch;
 @RestController
 public class OrderController {
 
+
+
     @PostMapping("/api/order")
-    public String placeOrder(@RequestBody Order order) {
+    public ResponseEntity<?> placeOrder(@Valid @RequestBody Order order) {
+        // Conditional validation: delivery address required if delivery type
+        if ("delivery".equalsIgnoreCase(order.getDeliveryType())) {
+            if (order.getDeliveryAddress() == null || order.getDeliveryAddress().isBlank()) {
+                return ResponseEntity.badRequest().body("Delivery address is required for delivery.");
+            }
+        }
+    
+        // Validate deliveryType and paymentMethod values
+        List<String> allowedDeliveryTypes = List.of("pickup", "delivery");
+        List<String> allowedPayments = List.of("cod", "online");
+    
+        if (!allowedDeliveryTypes.contains(order.getDeliveryType().toLowerCase())) {
+            return ResponseEntity.badRequest().body("Invalid delivery type.");
+        }
+    
+        if (!allowedPayments.contains(order.getPaymentMethod().toLowerCase())) {
+            return ResponseEntity.badRequest().body("Invalid payment method.");
+        }
+    
+        // Save order to Firebase
         String orderId = UUID.randomUUID().toString();
         order.setId(orderId);
-
-        DatabaseReference ref = FirebaseDatabase.getInstance()
-                .getReference("orders")
-                .child(orderId);
-
-        ref.setValueAsync(order);
-        return orderId;
+    
+        FirebaseDatabase.getInstance()
+            .getReference("orders")
+            .child(orderId)
+            .setValueAsync(order);
+    
+        return ResponseEntity.ok(orderId);
     }
+    
 
     @GetMapping("/api/order/{id}")
     public Order getOrderById(@PathVariable String id) throws InterruptedException {
@@ -80,5 +105,35 @@ public class OrderController {
                 .setValueAsync(newStatus.toUpperCase());
 
         return ResponseEntity.ok("Status updated to " + newStatus.toUpperCase());
+    }
+
+    @GetMapping("/api/orders")
+    public List<Order> getAllOrders() throws InterruptedException {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("orders");
+
+        List<Order> orders = new ArrayList<>();
+        CountDownLatch latch = new CountDownLatch(1);
+
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                for (DataSnapshot orderSnap : snapshot.getChildren()) {
+                    Order order = orderSnap.getValue(Order.class);
+                    if (order != null) {
+                        order.setId(orderSnap.getKey()); // ✅ set ID from Firebase key
+                        orders.add(order);
+                    }
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                latch.countDown();
+            }
+        });
+
+        latch.await();
+        return orders;
     }
 }

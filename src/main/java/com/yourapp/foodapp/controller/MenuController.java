@@ -3,6 +3,7 @@ package com.yourapp.foodapp.controller;
 import com.yourapp.foodapp.model.GroupedMenu;
 import com.yourapp.foodapp.model.MenuItem;
 import com.google.firebase.database.*;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +27,7 @@ public class MenuController {
                     List<MenuItem> items = new ArrayList<>();
                     for (DataSnapshot itemSnap : categorySnap.getChildren()) {
                         MenuItem item = itemSnap.getValue(MenuItem.class);
+                        item.setId(itemSnap.getKey());
                         items.add(item);
                     }
                     result.add(new GroupedMenu(categorySnap.getKey(), items));

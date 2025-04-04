@@ -1,9 +1,11 @@
 package com.yourapp.foodapp.model;
 
 public class MenuItem {
+    private String id;
     private String name;
     private double price;
     private String description;
+    private boolean available = true;
 
     public MenuItem() {
     }
@@ -14,6 +16,14 @@ public class MenuItem {
         this.description = description;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+    
     public String getName() {
         return name;
     }
@@ -36,5 +46,13 @@ public class MenuItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+    
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 }
